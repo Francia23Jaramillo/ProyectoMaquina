@@ -1,29 +1,24 @@
 ﻿using ProyectoMaquina.model;
-using System.Security.Cryptography.X509Certificates;
+using System;
+using System.Collections.Concurrent;
+using System.Text;
 
 namespace ProyectoMaquina.control
 {
-
     public sealed class Controller
     {
         private static Controller _instance;
-        public List<IProduct> ListaProductos { get; set; }
-
+        private readonly ConcurrentDictionary<string, IProduct> _productDictionary;
 
         private Controller()
         {
-            ListaProductos = new List<IProduct>();
+            _productDictionary = new ConcurrentDictionary<string, IProduct>();
 
-            ListaProductos.Add(new Consumable("Coca Cola", 3200, 5));
-            ListaProductos.Add(new Consumable("Snacks", 2500, 10));
-            ListaProductos.Add(new Consumable("Chocolatina", 2800, 8));
+            AddProduct(new Consumable("Coca Cola", 3200, 2));
+            AddProduct(new Consumable("Snacks", 2500, 10));
+            AddProduct(new Consumable("Chocolatina", 2800, 8));
         }
 
-        public void AgregarProduct(Consumable product)    
-        
-        {
-            ListaProductos.Add(product);
-        }
         public static Controller GetInstance()
         {
             if (_instance == null)
@@ -32,45 +27,62 @@ namespace ProyectoMaquina.control
             }
             return _instance;
         }
+
+        public void AddProduct(Consumable product)
+        {
+            _productDictionary.TryAdd(product.Name, product);
+        }
+
         public string DisplayProductList()
         {
-            string value = "";
+            var productList = new StringBuilder();
 
-            foreach (IProduct product in ListaProductos)
+            foreach (var product in _productDictionary.Values)
             {
-                value += product.DisplayProduct() + '\n';
+                productList.AppendLine(product.DisplayProduct());
             }
-            return value;
+
+            return productList.ToString();
         }
-        public bool ProductExists(string product_name)
+
+        public bool ProductExists(string productName)
         {
-            bool product_exists = false;
-            foreach (IProduct product in ListaProductos)
+            return _productDictionary.ContainsKey(productName);
+        }
+
+        public bool ProductHasInventory(string productName)
+        {
+            if (_productDictionary.TryGetValue(productName, out var product))
             {
-                if (product.Name == product_name)
+                return product.Quantity > 0;
+            }
+
+            return false;
+        }
+
+        public IProduct GetProductByName(string productName)
+        {
+            _productDictionary.TryGetValue(productName, out var product);
+            return product;
+        }
+
+        public void UpdateProductQuantity(string productName)
+        {
+            if (_productDictionary.TryGetValue(productName, out var product))
+            {
+                // Resta 1 a la cantidad del producto después de una venta
+                product.Quantity -= 1;
+
+                // Verificar si la cantidad es menor o igual a cero y eliminar el producto si es necesario
+                if (product.Quantity <= 0)
                 {
-                    product_exists = true;
+                    Console.WriteLine("Producto no disponible, se excluirá de la lista:");
+                    
+
+                    // _productDictionary.TryGetValue(productName, out _);
+                    _productDictionary.TryRemove(productName, out _);
                 }
             }
-            return product_exists;
         }
-        public bool ProductHasInventory(string product_name)
-
-        {
-            bool has_inventory = false;
-            foreach (IProduct product in ListaProductos)
-            {
-                if (product.Name == product_name && product.Quantity > 0)
-                {
-                    has_inventory = true;
-                }
-
-            }
-            return has_inventory;
-
-        }
-
-     
     }
 }
-

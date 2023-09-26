@@ -1,107 +1,114 @@
 ﻿using ProyectoMaquina.control;
 using ProyectoMaquina.model;
 using System;
-using System.Drawing;
 
 namespace ProyectoMaquina.view
 {
     internal class View
     {
-
-
         static void Main(string[] args)
         {
-
             Controller controller = Controller.GetInstance();
-      
-            string texto_bienvenida = "Bienvenido a la maquina expendedora ";
-            Console.WriteLine(texto_bienvenida);
-            string input_cliente = "";
-            string input_pro = "";
-            int input_valor;
-            int input_cant;
+
+            Console.WriteLine("Bienvenido a la máquina expendedora");
+
             while (true)
             {
-
-
-
-
-                do
+                string inputCliente = GetUserInput("Escoja tipo de cliente: [C] - Cliente o [P] - Proveedor");
+                if (inputCliente == "C")
                 {
-                    Console.WriteLine("escoja tipo de cliente: [C] o [P]");
-                    input_cliente = Console.ReadLine();
-                } while (input_cliente != "C" && input_cliente != "P");
-            
-
-                if (input_cliente == "C")
-                {
-
-                    Console.WriteLine("la lista de productos es:"); // TO-DO: Lista de productos
-                    Console.WriteLine(controller.DisplayProductList());
-
-                    Console.WriteLine("Escoja un producto de la lista...");
-                    bool valid_product = false;
-                    do
-                    {
-                        string input_producto = Console.ReadLine();
-                        valid_product = controller.ProductExists(input_producto) && controller.ProductHasInventory(input_producto);
-                        if (valid_product == false)
-                        {
-                            Console.WriteLine("Escoga un producto valido");
-                        }
-                    } while (!valid_product);
-
-
-                    Console.WriteLine("Ingrese los billetes para el pago del producto");
-                    int suma_billetes = 0;
-                    while (true)
-                    {
-                        Console.WriteLine("Ingrese el billete...");
-                        try
-                        {
-                            suma_billetes += Convert.ToInt32(Console.ReadLine());
-
-                        }
-                        catch (FormatException e)
-                        {
-                            Console.WriteLine($"Por favor ingrese un dato con valor numerico: {e.Message}");
-                           
-                        }
-
-
-                        Console.WriteLine("Para dejar de ingresar billetes, escriba [STOP] de lo contrario presione ENTER");
-                        string input_cash = Console.ReadLine();
-                        if (input_cash == "STOP")
-                        {
-                            Console.WriteLine($"Billete ingresado y producto comprado con éxito");
-                            break;
-                        }
-
-
-                    }
+                    ProcessCustomer(controller);
                 }
-                else if (input_cliente == "P")
+                else if (inputCliente == "P")
                 {
-                    Console.WriteLine("Nombre producto");
-                    input_pro = Console.ReadLine();
-                    Console.WriteLine("Valor del producto");
-
-                    input_valor = Convert.ToInt32(Console.ReadLine());
-                    
-                    Console.WriteLine("Cantidad");
-                    input_cant = Convert.ToInt32(Console.ReadLine());
-
-                    Consumable nuevoProducto = new Consumable(input_pro, input_valor, input_cant);
-
-
-
-                    controller.AgregarProduct(nuevoProducto);
-
-                    Console.WriteLine("Producto registrado con éxito.");
+                    ProcessOwner(controller);
+                }
+                else
+                {
+                    Console.WriteLine("Opción no válida. Por favor, elija [C] o [P].");
                 }
 
-
+                if (ShouldExit())
+                {
+                    break;
+                }
             }
+        }
+
+        static void ProcessCustomer(Controller controller)
+        {
+            Console.WriteLine("Lista de productos:");
+            Console.WriteLine(controller.DisplayProductList());
+
+            string productName;
+            do
+            {
+                productName = GetUserInput("Escoja un producto de la lista");
+                if (!controller.ProductExists(productName) || !controller.ProductHasInventory(productName))
+                {
+                    Console.WriteLine("Producto no válido o sin inventario.");
+                }
+            } while (!controller.ProductExists(productName) || !controller.ProductHasInventory(productName));
+
+            IProduct selectedProduct = controller.GetProductByName(productName);
+
+            int totalPrice = selectedProduct.Price;
+            int moneyInserted = CollectMoney(totalPrice);
+
+            if (moneyInserted >= totalPrice)
+            {
+                Console.WriteLine($"Producto comprado con éxito.");
+              Console.WriteLine($"Su cambio puede ser retornarnado en billetes o monedas de 500, 200, 100 y 50");
+                Console.WriteLine($"Su Cambio es de : {moneyInserted - totalPrice}");
+                controller.UpdateProductQuantity(productName); // Actualizar la cantidad del producto
+            }
+            else
+            {
+                Console.WriteLine("El dinero ingresado no es suficiente para comprar el producto.");
+            }
+        }
+
+        static int CollectMoney(int targetAmount)
+        {
+            int totalMoney = 0;
+            while (totalMoney < targetAmount)
+            {
+                int money;
+                if (int.TryParse(GetUserInput("Ingrese el billete:"), out money))
+                {
+                    totalMoney += money;
+                    Console.WriteLine($"Dinero total ingresado: {totalMoney}");
+                }
+                else
+                {
+                    Console.WriteLine("Por favor ingrese un número válido.");
+                }
+            }
+            return totalMoney;
+        }
+
+        static void ProcessOwner(Controller controller)
+        {
+            string productName = GetUserInput("Nombre del producto:");
+            int productPrice = int.Parse(GetUserInput("Valor del producto:"));
+            int productQuantity = int.Parse(GetUserInput("Cantidad:"));
+
+            Consumable newProduct = new Consumable(productName, productPrice, productQuantity);
+            controller.AddProduct(newProduct);
+
+            Console.WriteLine("Producto registrado con éxito.");
+        }
+
+        static string GetUserInput(string prompt)
+        {
+            Console.WriteLine(prompt);
+            return Console.ReadLine();
+        }
+
+        static bool ShouldExit()
+        {
+            string input = GetUserInput("¿Desea salir? (Sí/No)");
+            return input.Equals("Sí", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

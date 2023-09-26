@@ -13,11 +13,11 @@ namespace ProyectoMaquina.model
         public int Price { get; set; }
         public int Quantity { get; set; }
 
-        public Consumable(string name, int price, int quantity)
+        public Consumable(string? name, int? price, int? quantity)
         {
             Name = name;
-            Price = price;
-            Quantity = quantity;
+            Price = (int) price;
+            Quantity = (int) quantity;
 
         }
         public string DisplayProduct()

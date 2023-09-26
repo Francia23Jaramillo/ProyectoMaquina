@@ -9,7 +9,10 @@ namespace ProyectoMaquina.model
     public interface IProduct
     {
         string Name { get; set; }
+        int Price { get; set; }
         int Quantity {  get; set; }
+        
+
         string DisplayProduct();
     }
 }
